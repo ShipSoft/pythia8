@@ -90,7 +90,7 @@ public:
 
   // Constructor.
   EvtGenDecays(Pythia *pythiaPtrIn, string decayFile, string particleDataFile,
-    EvtExternalGenList *extPtrIn = 0, EvtAbsRadCorr *fsrPtrIn = 0,
+    EvtGen *evtPtr = 0, EvtExternalGenList *extPtrIn = 0, EvtAbsRadCorr *fsrPtrIn = 0,
     int mixing = 1, bool xml = false, bool limit = true,
     bool extUse = true, bool fsrUse = true);
 
@@ -219,10 +219,10 @@ protected:
 //   extUse:           flag to use external models with EvtGen.
 //   fsrUse:           flag to use radiative correction engine with EvtGen.
 
-EvtGenDecays::EvtGenDecays(Pythia *pythiaPtrIn, string decayFile,
-  string particleDataFile, EvtExternalGenList *extPtrIn,
+inline EvtGenDecays::EvtGenDecays(Pythia *pythiaPtrIn, string decayFile,
+  string particleDataFile,EvtGen *evtPtr, EvtExternalGenList *extPtrIn,
   EvtAbsRadCorr *fsrPtrIn, int mixing, bool xml, bool limit,
-  bool extUse, bool fsrUse) : extPtr(extPtrIn), fsrPtr(fsrPtrIn),
+  bool extUse, bool fsrUse) : extPtr(extPtrIn), fsrPtr(fsrPtrIn),evtgen(evtPtr),
   signalSuffix("_SIGNAL"), pythiaPtr(pythiaPtrIn), rndm(&pythiaPtr->rndm),
   updated(false) {
 
@@ -237,9 +237,10 @@ EvtGenDecays::EvtGenDecays(Pythia *pythiaPtrIn, string decayFile,
   if (fsrPtr) fsrOwner = false;
   else {fsrOwner = true; fsrPtr = extPtr->getPhotosModel();}
   models = extPtr->getListOfModels();
+  if (!evtgen){
   evtgen = new EvtGen(decayFile.c_str(), particleDataFile.c_str(),
     &rndm, fsrUse ? fsrPtr : 0, extUse ? &models : 0, mixing, xml);
-
+  }
   // Get the Pythia decay limits.
   if (!pythiaPtr) return;
   limitTau0     = pythiaPtr->settings.flag("ParticleDecays:limitTau0");
@@ -279,7 +280,7 @@ EvtGenDecays::EvtGenDecays(Pythia *pythiaPtrIn, string decayFile,
 // definitions, but rather just remove the unwanted decay channels
 // from the signal decay definition.
 
-double EvtGenDecays::decay() {
+inline double EvtGenDecays::decay() {
 
   // Reset the signal and signal counters.
   if (!pythiaPtr || !evtgen) return -1;
@@ -382,7 +383,7 @@ double EvtGenDecays::decay() {
 // width, minimum mass, maximum mass, and nominal lifetime are
 // set. The name string is not set.
 
-void EvtGenDecays::updatePythia() {
+inline void EvtGenDecays::updatePythia() {
   if (!pythiaPtr || !evtgen) return;
   for (int entry = 0; entry < (int)EvtPDL::entries(); ++entry) {
     EvtId egId = EvtPDL::getEntry(entry);
@@ -405,7 +406,7 @@ void EvtGenDecays::updatePythia() {
 // symmetric. Particularly, it is not possible to update the spin
 // type, charge, or nominal lifetime in the EvtGen particle database.
 
-void EvtGenDecays::updateEvtGen() {
+inline void EvtGenDecays::updateEvtGen() {
   if (!pythiaPtr || !evtgen) return;
   int pyId = pythiaPtr->particleData.nextId(1);
   while (pyId != 0) {
@@ -430,7 +431,7 @@ void EvtGenDecays::updateEvtGen() {
 // decay the particle. Additionally, the signal decay channels are
 // turned off for the non-aliased signal particle.
 
-void EvtGenDecays::updateData(bool final) {
+inline void EvtGenDecays::updateData(bool final) {
 
   // Loop over the EvtGen entries.
   if (!pythiaPtr) return;
@@ -521,7 +522,7 @@ void EvtGenDecays::updateData(bool final) {
 // pySigs and egSigs vectors, to be decayed later. However, if any of
 // these arguments is NULL then the entire tree is written.
 
-void EvtGenDecays::updateEvent(Particle *pyPro, EvtParticle *egPro,
+inline void EvtGenDecays::updateEvent(Particle *pyPro, EvtParticle *egPro,
   vector<int> *pySigs, vector<EvtParticle*> *egSigs,
   vector<double> *bfs, double *wgt) {
 
@@ -579,7 +580,7 @@ void EvtGenDecays::updateEvent(Particle *pyPro, EvtParticle *egPro,
 
 // Modified slightly from ParticleDecays::checkVertex.
 
-bool EvtGenDecays::checkVertex(Particle *pyPro) {
+inline bool EvtGenDecays::checkVertex(Particle *pyPro) {
   if (!limitDecay) return true;
   if (limitTau0 && pyPro->tau0() > tau0Max) return false;
   if (limitTau && pyPro->tau() > tauMax) return false;
@@ -594,7 +595,7 @@ bool EvtGenDecays::checkVertex(Particle *pyPro) {
 
 // Check if a particle is signal.
 
-bool EvtGenDecays::checkSignal(Particle *pyPro) {
+inline bool EvtGenDecays::checkSignal(Particle *pyPro) {
   signal = signals.find(pyPro->id());
   if (signal != signals.end() && (signal->second.status < 0 ||
     signal->second.status == pyPro->status())) return true;
@@ -608,7 +609,7 @@ bool EvtGenDecays::checkSignal(Particle *pyPro) {
 // The criteria defined here for oscillation is a single daughter but
 // with a different ID from the mother.
 
-bool EvtGenDecays::checkOsc(EvtParticle *egPro) {
+inline bool EvtGenDecays::checkOsc(EvtParticle *egPro) {
   if (egPro && egPro->getNDaug() == 1 &&
       egPro->getPDGId() != egPro->getDaug(0)->getPDGId()) return true;
   else return false;
